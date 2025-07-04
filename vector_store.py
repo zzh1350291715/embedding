@@ -56,6 +56,23 @@ def insert_document(knowledge_base_id: int, file_name: str):
 
     return {"msg": f"{len(vectors)} 条向量与文本已插入并加载到集合 {collection_name}"}
 
+def search_similar_texts(collection_name: str, query: str, top_k: int = 5):
+    embed = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    query_vector = embed.embed_query(query)
+
+    collection = Collection(collection_name)
+    collection.load()
+    results = collection.search(
+        data=[query_vector],
+        anns_field="embedding",
+        param={"metric_type": "L2", "params": {"nprobe": 10}},
+        limit=top_k,
+        output_fields=["text"]
+    )
+
+    hits = results[0]
+    return [hit.entity.get("text") for hit in hits]
+
 
 def create_collection(name: str):
     fields = [
